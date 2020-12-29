@@ -158,6 +158,8 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
   
   # Imgui
   find_path(IMGUI_INCLUDE_DIR imgui/imgui.h PATHS ${LIBIGL_EXTERNAL_DIR}/ REQUIRED)
+  find_path(LIBIGL_IMGUI_INCLUDE_DIR imgui_fonts_droid_sans.h PATHS ${LIBIGL_EXTERNAL_DIR}/libigl-imgui REQUIRED)
+  set(IMGUI_INCLUDE_DIRS ${IMGUI_INCLUDE_DIR} ${IMGUI_INCLUDE_DIR}/imgui/ ${IMGUI_INCLUDE_DIR}/imgui/examples ${LIBIGL_IMGUI_INCLUDE_DIR})
   find_library(IMGUI_LIBRARY NAMES imgui HINTS  ${LIBIGL_BUILD_DIR} REQUIRED)
   
   # Imguizmo
@@ -167,7 +169,8 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
   # libigl_opengl_glfw_imgui.a
   add_library(igl_opengl_glfw_imgui INTERFACE)
   target_include_directories(igl_opengl_glfw_imgui SYSTEM INTERFACE $<BUILD_INTERFACE:${LIBIGL_INCLUDE_DIR}> $<INSTALL_INTERFACE:include>)
-  target_include_directories(igl_opengl_glfw_imgui INTERFACE ${IMGUI_INCLUDE_DIR} ${IMGUIZMO_INCLUDE_DIR})
+  target_include_directories(igl_opengl_glfw_imgui INTERFACE ${IMGUI_INCLUDE_DIRS} ${IMGUIZMO_INCLUDE_DIR})
+  target_compile_definitions(igl_opengl_glfw_imgui INTERFACE -DIMGUI_IMPL_OPENGL_LOADER_GLAD)
   add_library(               igl::opengl_glfw_imgui ALIAS igl_opengl_glfw_imgui)
   target_link_libraries(     igl_opengl_glfw_imgui INTERFACE ${IMGUI_LIBRARY} ${IMGUIZMO_LIBRARY})
   find_library(LIBIGL_opengl_glfw_imgui_LIBRARY NAMES igl_opengl_glfw_imgui HINTS  ${LIBIGL_BUILD_DIR} REQUIRED)
