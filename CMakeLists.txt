@@ -34,17 +34,17 @@ ENDIF()
 
 # For each libigl module, link to target (and flip definition flag)
 target_link_libraries(${PROJECT_NAME} igl::core)
-list(APPEND modules "copyleft_cgal" "comiso" "embree" "restricted_matlab" "restricted_mosek" "opengl" "glfw" "imgui" "png" "copyleft_tetgen" "restricted_triangle" "restricted_predicates" "xml")
+list(APPEND modules "copyleft_cgal" "comiso" "embree" "restricted_matlab" "restricted_mosek" "opengl" "glfw" "imgui" "png
 foreach(module_name IN LISTS modules)
   # mangle new module names
+  set(orig_module_name ${module_name})
   string(REGEX MATCH ".*_" suffix ${module_name})
   if(suffix)
     string(REGEX REPLACE "_" "" suffix ${suffix})
     set(suffix "_${suffix}")
     string(REGEX REPLACE ".*_" "" module_name ${module_name})
   endif()
-
-  string(TOUPPER "LIBIGL_${module_name}" option_string)
+  string(TOUPPER "LIBIGL_${orig_module_name}" option_string)
   set(option_variable ${${option_string}})
   if(option_variable)
     target_compile_definitions(${PROJECT_NAME} PRIVATE -D${option_string})
