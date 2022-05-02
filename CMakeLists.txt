@@ -9,12 +9,12 @@ option(LIBIGL_USE_STATIC_LIBRARY     "Use libigl as static library" ${LIBIGL_USE
 option(LIBIGL_OPENGL                 "Use OpenGL"                   ON)
 option(LIBIGL_GLFW                   "Use GLFW"                     ON)
 option(LIBIGL_COPYLEFT_CGAL          "Use CGAL"                     ON)
-option(LIBIGL_EMBREE                 "Use Embree"                   ON)
-option(LIBIGL_IMGUI                  "Use ImGui"                    ON)
-option(LIBIGL_PNG                    "Use PNG"                      ON)
-option(LIBIGL_COPYLEFT_TETGEN        "Use Tetgen"                   ON)
-option(LIBIGL_RESTRICTED_TRIANGLE    "Use Triangle"                 ON)
-option(LIBIGL_XML                    "Use XML"                      ON)
+option(LIBIGL_EMBREE                 "Use Embree"                   OFF)
+option(LIBIGL_IMGUI                  "Use ImGui"                    OFF)
+option(LIBIGL_PNG                    "Use PNG"                      OFF)
+option(LIBIGL_COPYLEFT_TETGEN        "Use Tetgen"                   OFF)
+option(LIBIGL_RESTRICTED_TRIANGLE    "Use Triangle"                 OFF)
+option(LIBIGL_XML                    "Use XML"                      OFF)
 option(LIBIGL_RESTRICTED_MATLAB      "Use Matlab"                   OFF)
 option(LIBIGL_RESTRICTED_MOSEK       "Use MOSEK"                    OFF)
 option(LIBIGL_RESTRICTED_PREDICATES  "Use exact predicates"         OFF)
@@ -33,7 +33,20 @@ ENDIF()
 
 # For each libigl module, link to target (and flip definition flag)
 target_link_libraries(${PROJECT_NAME} igl::core)
-list(APPEND modules "copyleft_cgal" "comiso" "embree" "restricted_matlab" "restricted_mosek" "opengl" "glfw" "imgui" "png
+list(APPEND modules 
+ "opengl"
+ "glfw"
+ "copyleft_cgal"
+ "embree"
+ "imgui"
+ "png"
+ "copyleft_tetgen"
+ "restricted_triangle"
+ "xml"
+ "restricted_matlab"
+ "restricted_mosek"
+ "restricted_predicates"
+ "comiso")
 foreach(module_name IN LISTS modules)
   # mangle new module names
   set(orig_module_name ${module_name})
