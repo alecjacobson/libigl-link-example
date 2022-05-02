@@ -31,7 +31,6 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
   endif()
 
   set(LIBIGL_DIR "${LIBIGL_INCLUDE_DIR}/..")
-  set(LIBIGL_EXTERNAL_DIR "${LIBIGL_DIR}/external")
   if(NOT DEFINED LIBIGL_LIB_DIR)
     find_path(LIBIGL_LIB_DIR libigl.a libigl.so libigl.dll
       HINTS
@@ -44,11 +43,13 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
     )
   endif()
   message(STATUS "Using prebuilt libigl libraries in ${LIBIGL_LIB_DIR}")
+  set(LIBIGL_DEPS_DIR "${LIBIGL_LIB_DIR}/../_deps")
+  message(STATUS "Using prebuilt libigl dependencices in ${LIBIGL_DEPS_DIR}")
   
   # Eigen
   add_library(igl_eigen INTERFACE)
   target_include_directories(igl_eigen SYSTEM INTERFACE
-    $<BUILD_INTERFACE:${LIBIGL_EXTERNAL_DIR}/eigen> $<INSTALL_INTERFACE:include>)
+    $<BUILD_INTERFACE:${LIBIGL_DEPS_DIR}/eigen-src> $<INSTALL_INTERFACE:include>)
   set_property(TARGET igl_eigen PROPERTY EXPORT_NAME Eigen3::Eigen)
   add_library(Eigen3::Eigen ALIAS igl_eigen)
   
@@ -65,13 +66,30 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
   
   # CGAL
   if(LIBIGL_COPYLEFT_CGAL)
-    set(CGAL_DIR "${LIBIGL_EXTERNAL_DIR}/cgal")
-    set(BOOST_ROOT "${LIBIGL_EXTERNAL_DIR}/boost")
+    find_path(Boost_DIR BoostConfig.cmake HINTS "${LIBIGL_LIB_DIR}/../Boost" REQUIRED)
+    find_path(Boost_INCLUDE_DIR boost/config.hpp HINTS "${LIBIGL_DEPS_DIR}/boost-src" REQUIRED)
+    find_library(libboost_chrono NAMES boost_chrono HINTS ${LIBIGL_LIB_DIR} REQUIRED)
+    find_library(libboost_system NAMES boost_system HINTS ${LIBIGL_LIB_DIR} REQUIRED)
+    find_library(libboost_thread NAMES boost_thread HINTS ${LIBIGL_LIB_DIR} REQUIRED)
+    set(Boost_LIBRARIES ${libboost_chrono} ${libboost_system} ${libboost_thread})
+    set(CGAL_DIR "${LIBIGL_DEPS_DIR}/cgal-src")
+
+    set(GMP_INCLUDE_DIR "${LIBIGL_DEPS_DIR}/gmp/install/include/")
+    set(GMP_LIB_DIR "${LIBIGL_DEPS_DIR}/gmp/install/lib/")
+    set(GMPXX_INCLUDE_DIR ${GMP_INCLUDE_DIR})
+    find_library(GMP_LIBRARIES NAMES gmp HINTS ${GMP_LIB_DIR} REQUIRED)
+    find_library(GMPXX_LIBRARIES NAMES gmpxx HINTS ${GMP_LIB_DIR} REQUIRED)
+
+    set(MPFR_INCLUDE_DIR "${LIBIGL_DEPS_DIR}/mpfr/install/include/")
+    set(MPFR_LIB_DIR "${LIBIGL_DEPS_DIR}/mpfr/install/lib/")
+    find_library(MPFR_LIBRARIES NAMES mpfr HINTS ${MPFR_LIB_DIR} REQUIRED)
+
     find_package(CGAL CONFIG COMPONENTS Core PATHS ${CGAL_DIR} NO_DEFAULT_PATH REQUIRED)
     
     # libigl_copyleft_cgal.a
     add_library(igl_copyleft_cgal INTERFACE)
     target_include_directories(igl_copyleft_cgal SYSTEM INTERFACE $<BUILD_INTERFACE:${LIBIGL_INCLUDE_DIR}> $<INSTALL_INTERFACE:include>)
+    target_include_directories(igl_copyleft_cgal INTERFACE ${Boost_INCLUDE_DIR})
     add_library(               igl_copyleft::cgal ALIAS igl_copyleft_cgal)
     target_link_libraries(     igl_copyleft_cgal INTERFACE CGAL::CGAL CGAL::CGAL_Core)
     find_library(LIBIGL_cgal_LIBRARY NAMES igl_copyleft_cgal igl_copyleft_cgal HINTS  ${LIBIGL_LIB_DIR} REQUIRED)
@@ -81,7 +99,7 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
   # Embree
   if(LIBIGL_EMBREE)
     set(EMBREE_LIB_DIRS ${LIBIGL_LIB_DIR}/../_deps/embree-build ${LIBIGL_LIB_DIR}/embree)
-    find_path(EMBREE_INCLUDE_DIR embree3/rtcore.h PATHS ${LIBIGL_EXTERNAL_DIR}/embree/include REQUIRED)
+    find_path(EMBREE_INCLUDE_DIR embree3/rtcore.h HINTS ${LIBIGL_DEPS_DIR}/embree-src/include REQUIRED)
     find_library(EMBREE_embree3_LIBRARY     NAMES embree3     HINTS ${EMBREE_LIB_DIRS} REQUIRED)
     find_library(EMBREE_embree_avx2_LIBRARY NAMES embree_avx2 HINTS ${EMBREE_LIB_DIRS} ) # not required (won't exist for debug)
     if(NOT EMBREE_embree_avx2_LIBRARY)
@@ -137,7 +155,7 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
     find_package(OpenGL REQUIRED)
   
     # Glad
-    find_path(GLAD_INCLUDE_DIR glad/glad.h PATHS ${LIBIGL_EXTERNAL_DIR}/glad/include REQUIRED)
+    find_path(GLAD_INCLUDE_DIR glad/gl.h HINTS ${LIBIGL_DEPS_DIR}/glad-src/include REQUIRED)
     find_library(GLAD_LIBRARY NAMES glad HINTS  ${LIBIGL_LIB_DIR} REQUIRED)
     
     # libigl_opengl.a
@@ -151,8 +169,10 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
     
     # GLFW
     if(LIBIGL_GLFW OR LIBIGL_IMGUI)
-      find_path(GLFW_INCLUDE_DIR GLFW/glfw3.h PATHS ${LIBIGL_EXTERNAL_DIR}/glfw/include REQUIRED)
-      find_library(glfw_LIBRARIES NAMES glfw3 HINTS  ${LIBIGL_LIB_DIR} REQUIRED)
+      find_path(GLFW_INCLUDE_DIR GLFW/glfw3.h HINTS ${LIBIGL_DEPS_DIR}/glfw-src/include REQUIRED)
+      find_library(glfw_LIBRARIES NAMES glfw3 HINTS  
+        ${LIBIGL_LIB_DIR} 
+        REQUIRED)
       list(APPEND glfw_LIBRARIES
           "-framework Cocoa"
           "-framework IOKit"
@@ -170,13 +190,13 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
     
       if(LIBIGL_IMGUI)
         # Imgui
-        find_path(IMGUI_INCLUDE_DIR imgui/imgui.h PATHS ${LIBIGL_EXTERNAL_DIR}/ REQUIRED)
+        find_path(IMGUI_INCLUDE_DIR imgui.h HINTS ${LIBIGL_DEPS_DIR}/imgui-src REQUIRED)
         find_path(LIBIGL_IMGUI_INCLUDE_DIR imgui_fonts_droid_sans.h PATHS ${LIBIGL_EXTERNAL_DIR}/libigl-imgui REQUIRED)
         set(IMGUI_INCLUDE_DIRS ${IMGUI_INCLUDE_DIR} ${IMGUI_INCLUDE_DIR}/imgui/ ${IMGUI_INCLUDE_DIR}/imgui/examples ${LIBIGL_IMGUI_INCLUDE_DIR})
         find_library(IMGUI_LIBRARY NAMES imgui HINTS  ${LIBIGL_LIB_DIR} REQUIRED)
         
         # Imguizmo
-        find_path(IMGUIZMO_INCLUDE_DIR imguizmo/ImGuizmo.h PATHS ${LIBIGL_EXTERNAL_DIR}/ REQUIRED)
+        find_path(IMGUIZMO_INCLUDE_DIR imguizmo/ImGuizmo.h HINTS ${LIBIGL_DEPS_DIR}/ REQUIRED)
         find_library(IMGUIZMO_LIBRARY NAMES imguizmo HINTS  ${LIBIGL_LIB_DIR} REQUIRED)
         
         # libigl_imgui.a
@@ -194,7 +214,7 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
   
   # stb_image
   if(LIBIGL_PNG)
-    find_path(STB_IMAGE_INCLUDE_DIR igl_stb_image.h PATHS ${LIBIGL_EXTERNAL_DIR}/stb REQUIRED)
+    find_path(STB_IMAGE_INCLUDE_DIR igl_stb_image.h HINTS ${LIBIGL_DEPS_DIR}/stb-src REQUIRED)
   
     # libigl_png.a
     add_library(igl_png INTERFACE)
@@ -209,7 +229,7 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
   
   # Tetgen
   if(LIBIGL_COPYLEFT_TETGEN)
-    find_path(TETGEN_INCLUDE_DIR tetgen.h PATHS ${LIBIGL_EXTERNAL_DIR}/tetgen/ REQUIRED)
+    find_path(TETGEN_INCLUDE_DIR tetgen.h HINTS ${LIBIGL_DEPS_DIR}/tetgen-src/ REQUIRED)
     find_library(TETGEN_LIBRARY NAMES tetgen HINTS  ${LIBIGL_LIB_DIR} REQUIRED)
   
     # libigl_tetgen.a
@@ -224,7 +244,7 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
     
   # Triangle
   if(LIBIGL_RESTRICTED_TETGEN)
-    find_path(TRIANGLE_INCLUDE_DIR triangle.h PATHS ${LIBIGL_EXTERNAL_DIR}/triangle/ REQUIRED)
+    find_path(TRIANGLE_INCLUDE_DIR triangle.h HINTS ${LIBIGL_DEPS_DIR}/triangle-src/ REQUIRED)
     find_library(TRIANGLE_LIBRARY NAMES triangle HINTS  ${LIBIGL_LIB_DIR} REQUIRED)
     
     # libigl_restricted_triangle.a
@@ -240,7 +260,7 @@ if(LIBIGL_USE_PREBUILT_LIBRARIES)
   
   # TinyXML2
   if(LIBIGL_XML)
-    find_path(TINYXML2_INCLUDE_DIR tinyxml2.h PATHS ${LIBIGL_EXTERNAL_DIR}/tinyxml2/ REQUIRED)
+    find_path(TINYXML2_INCLUDE_DIR tinyxml2.h HINTS ${LIBIGL_DEPS_DIR}/tinyxml2-src/ REQUIRED)
     find_library(TINYXML2_LIBRARY NAMES tinyxml2 HINTS  ${LIBIGL_LIB_DIR} REQUIRED)
   
     # libigl_xml.a
